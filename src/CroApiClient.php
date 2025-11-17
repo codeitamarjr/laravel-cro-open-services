@@ -74,7 +74,7 @@ class CroApiClient
         $results = [];
         $skip = 0;
 
-        do {
+        while (true) {
             $response = $this->http()
                 ->get("{$this->baseUrl}/submissions", [
                     'company_bus_ind' => strtoupper($busIndicator),
@@ -101,8 +101,12 @@ class CroApiClient
             $results = array_merge($results, $batch);
             $skip += $this->maxPerPage;
 
+            if (count($batch) < $this->maxPerPage) {
+                break;
+            }
+
             usleep($this->delayBetweenRequestsMs * 1000);
-        } while (count($batch) === $this->maxPerPage);
+        }
 
         usort($results, fn ($a, $b) => strcmp($b['sub_received_date'] ?? '', $a['sub_received_date'] ?? ''));
         $seen = [];

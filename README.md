@@ -50,6 +50,15 @@ $submissions = CroApi::getCompanySubmissions('123456');
 $latestByType = CroApi::searchCompanySubmissions('123456'); // paginated + deduped
 ```
 
+## Testing
+
+Run the package tests locally:
+
+```bash
+composer install
+composer test
+```
+
 ### Available methods
 
 - `searchByNumber(string $number): array` — Filter companies by number.
