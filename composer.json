@@ -3,7 +3,7 @@
     "name": "codeitamarjr/laravel-cro-api",
     "description": "Laravel wrapper for the Irish CRO API with helpers for searching companies and submissions.",
     "type": "library",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "license": "MIT",
     "keywords": [
         "laravel",
