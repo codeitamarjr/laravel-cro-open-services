@@ -57,11 +57,13 @@ class CroApiClient
      */
     public function getCompanySubmissions(string $number): array
     {
-        $response = $this->http()->get("{$this->baseUrl}/submissions/{$number}/c", [
+        $response = $this->http()->get("{$this->baseUrl}/company/{$number}/c/submissions", [
             'format' => 'json',
         ]);
 
-        return $response->json();
+        $json = $response->json();
+
+        return is_array($json) ? $json : [];
     }
 
     /**
