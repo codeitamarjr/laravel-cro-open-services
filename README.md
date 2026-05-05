@@ -1,5 +1,7 @@
 # Laravel CRO Open Services
 
+[![Tests](https://github.com/codeitamarjr/laravel-cro-open-services/actions/workflows/tests.yml/badge.svg)](https://github.com/codeitamarjr/laravel-cro-open-services/actions/workflows/tests.yml)
+
 A small Laravel SDK for Ireland's CRO Open Services API.
 
 CRO Open Services is the Companies Registration Office REST API for integrating company and submission data into applications. This package exposes a Laravel HTTP client, service container binding, and facade for the public Open Services endpoints under `/cws`.

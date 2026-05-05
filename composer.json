@@ -13,8 +13,8 @@
         "open-services"
     ],
     "support": {
-        "issues": "https://github.com/codeitamarjr/laravel-cro-api/issues",
-        "source": "https://github.com/codeitamarjr/laravel-cro-api"
+        "issues": "https://github.com/codeitamarjr/laravel-cro-open-services/issues",
+        "source": "https://github.com/codeitamarjr/laravel-cro-open-services"
     },
     "require": {
         "php": "^8.1",
