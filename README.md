@@ -1,78 +1,88 @@
-# Laravel CRO API
+# Laravel CRO Open Services
 
-A minimal Laravel wrapper for the Irish Company Registration Office (CRO) API. It provides a fluent client, container binding, and a facade for common CRO lookups.
+A small Laravel SDK for Ireland's CRO Open Services API.
+
+CRO Open Services is the Companies Registration Office REST API for integrating company and submission data into applications. This package exposes a Laravel HTTP client, service container binding, and facade for the public Open Services endpoints under `/cws`.
+
+Official service: https://services.cro.ie/
 
 ## Install
 
 ```bash
-composer require codeitamarjr/laravel-cro-api
+composer require codeitamarjr/laravel-cro-open-services
 ```
 
 Publish the config if you need to override defaults:
 
 ```bash
-php artisan vendor:publish --tag=cro-api-config
+php artisan vendor:publish --tag=cro-open-services-config
 ```
 
 ## Configuration
 
-Set your credentials (and optionally override the base URL/timeouts) in your `.env`:
+Set your CRO Open Services credentials in `.env`:
 
-```
-CRO_API_EMAIL=you@example.com
+```dotenv
+CRO_EMAIL=you@example.com
 CRO_API_KEY=your-key
-CRO_API_BASE_URL=https://services.cro.ie/cws
-CRO_API_HTTP_TIMEOUT=15
-CRO_API_MAX_PER_PAGE=100
-CRO_API_RATE_LIMIT_SLEEP_SECONDS=10
-CRO_API_DELAY_BETWEEN_REQUESTS_MS=750
 ```
 
-`CRO_EMAIL` will also be read if `CRO_API_EMAIL` is not set, keeping compatibility with existing env names.
+More explicit `CRO_OPEN_SERVICES_EMAIL` and `CRO_OPEN_SERVICES_KEY` variables are also supported if you want to separate this SDK from older app configuration later.
 
 ## Usage
 
-Resolve the client out of the container (or use the `CroApi` facade):
-
 ```php
-use Codeitamarjr\LaravelCroApi\CroApiClient;
-use Codeitamarjr\LaravelCroApi\Facades\CroApi;
+use Codeitamarjr\LaravelCroOpenServices\CroOpenServicesClient;
+use Codeitamarjr\LaravelCroOpenServices\Facades\CroOpenServices;
 
-// Via dependency injection
-public function show(CroApiClient $cro)
+public function show(CroOpenServicesClient $cro)
 {
-    $companies = $cro->searchByNumber('123456');
+    $companies = $cro->searchCompaniesByNumber('123456');
 }
 
-// Via facade
-$details = CroApi::getCompanyDetails('123456');
-$submissions = CroApi::getCompanySubmissions('123456');
-$latestByType = CroApi::searchCompanySubmissions('123456'); // paginated + deduped
+$company = CroOpenServices::getCompany('123456');
+$submissions = CroOpenServices::getCompanySubmissions('123456');
+$latestByType = CroOpenServices::searchSubmissionsByCompanyNumber('123456');
 ```
 
-## Testing
+## Available methods
 
-Run the package tests locally:
+- `searchCompaniesByNumber(string $companyNumber, string $companyBusIndicator = 'C'): array`
+- `getCompany(string $companyNumber, string $companyBusIndicator = 'c'): array`
+- `getCompanySubmissions(string $companyNumber, string $companyBusIndicator = 'c'): array`
+- `searchSubmissionsByCompanyNumber(string $companyNumber, string $companyBusIndicator = 'C'): array`
+
+Endpoint coverage:
+
+- `GET /companies`
+- `GET /company/{companyNumber}/{companyBusIndicator}`
+- `GET /company/{companyNumber}/{companyBusIndicator}/submissions`
+- `GET /submissions`
+
+## Scope
+
+This package targets CRO Open Services. It does not attempt to wrap unrelated Irish company APIs, screen-scrape CORE pages, or provide paid document-streaming helpers until those endpoints are explicitly modelled and tested.
+
+## Local development
 
 ```bash
 composer install
 composer test
 ```
 
-### Available methods
-
-- `searchByNumber(string $number): array` — Filter companies by number.
-- `getCompanyDetails(string $number): array` — Fetch company profile data.
-- `getCompanySubmissions(string $number): array` — Retrieve submissions for one company.
-- `searchCompanySubmissions(string $number, string $busIndicator = 'c'): array` — Paginate through submissions, handling Cloudflare rate limits and returning the latest submission per type.
-
-## Testing locally
-
-When working in a single repo, you can point Composer to the path:
+Run the live CRO Open Services smoke test only when credentials are available:
 
 ```bash
-composer config repositories.laravel-cro-api path ./packages/laravel-cro-api
-composer require codeitamarjr/laravel-cro-api:*
+export CRO_EMAIL=you@example.com
+export CRO_API_KEY=your-key
+composer test:live
 ```
 
-The package is auto-discovered by Laravel; no manual provider registration is needed.
+If no credentials are exported, the live test uses CRO's official public test credential pair. It checks company number `83740` with company/business indicator `C` and verifies that `/company/83740/c` returns the documented `FOSTER WHEELER IRELAND LIMITED` payload shape.
+
+When working in a Laravel app with this package checked into `packages/laravel-cro-api`, point Composer to the path:
+
+```bash
+composer config repositories.laravel-cro-open-services path ./packages/laravel-cro-api
+composer require codeitamarjr/laravel-cro-open-services:*
+```

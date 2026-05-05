@@ -3,8 +3,7 @@
     bootstrap="vendor/autoload.php"
     colors="true"
     backupGlobals="false"
-    backupStaticAttributes="false"
-    verbose="true"
+    backupStaticProperties="false"
 >
     <testsuites>
         <testsuite name="Package Test Suite">
