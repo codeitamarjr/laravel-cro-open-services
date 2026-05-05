@@ -81,10 +81,3 @@ composer test:live
 ```
 
 If no credentials are exported, the live test uses CRO's official public test credential pair. It checks company number `83740` with company/business indicator `C` and verifies that `/company/83740/c` returns the documented `FOSTER WHEELER IRELAND LIMITED` payload shape.
-
-When working in a Laravel app with this package checked into `packages/laravel-cro-api`, point Composer to the path:
-
-```bash
-composer config repositories.laravel-cro-open-services path ./packages/laravel-cro-api
-composer require codeitamarjr/laravel-cro-open-services:*
-```
