@@ -9,7 +9,7 @@ Official service: https://services.cro.ie/
 ## Install
 
 ```bash
-composer require codeitamarjr/laravel-cro-open-services
+composer require codeitamarjr/laravel-cro-api
 ```
 
 Publish the config if you need to override defaults:
@@ -83,6 +83,6 @@ If no credentials are exported, the live test uses CRO's official public test cr
 When working in a Laravel app with this package checked into `packages/laravel-cro-api`, point Composer to the path:
 
 ```bash
-composer config repositories.laravel-cro-open-services path ./packages/laravel-cro-api
-composer require codeitamarjr/laravel-cro-open-services:*
+composer config repositories.laravel-cro-api path ./packages/laravel-cro-api
+composer require codeitamarjr/laravel-cro-api:*
 ```

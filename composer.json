@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "codeitamarjr/laravel-cro-open-services",
+    "name": "codeitamarjr/laravel-cro-api",
     "description": "Laravel SDK for Ireland's CRO Open Services API.",
     "type": "library",
     "license": "MIT",
