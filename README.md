@@ -40,6 +40,7 @@ use Codeitamarjr\LaravelCroOpenServices\Facades\CroOpenServices;
 public function show(CroOpenServicesClient $cro)
 {
     $companies = $cro->searchCompaniesByNumber('123456');
+    $matches = $cro->searchCompaniesByName('ryanair');
 }
 
 $company = CroOpenServices::getCompany('123456');
@@ -50,6 +51,7 @@ $latestByType = CroOpenServices::searchSubmissionsByCompanyNumber('123456');
 ## Available methods
 
 - `searchCompaniesByNumber(string $companyNumber, string $companyBusIndicator = 'C'): array`
+- `searchCompaniesByName(string $companyName, string $companyBusIndicator = 'C', int $searchType = 2, int $skip = 0, int $max = 25): array`
 - `getCompany(string $companyNumber, string $companyBusIndicator = 'c'): array`
 - `getCompanySubmissions(string $companyNumber, string $companyBusIndicator = 'c'): array`
 - `searchSubmissionsByCompanyNumber(string $companyNumber, string $companyBusIndicator = 'C'): array`

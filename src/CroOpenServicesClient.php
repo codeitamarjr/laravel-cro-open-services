@@ -39,6 +39,31 @@ class CroOpenServicesClient
     }
 
     /**
+     * Search CRO Open Services companies by company name.
+     *
+     * @return array<int|string, mixed>
+     */
+    public function searchCompaniesByName(
+        string $companyName,
+        string $companyBusIndicator = 'C',
+        int $searchType = 2,
+        int $skip = 0,
+        int $max = 25
+    ): array {
+        return $this->http()
+            ->get('/companies', [
+                'company_name' => $companyName,
+                'company_bus_ind' => strtoupper($companyBusIndicator),
+                'searchType' => $searchType,
+                'skip' => $skip,
+                'max' => $max,
+                'format' => 'json',
+            ])
+            ->throw()
+            ->json();
+    }
+
+    /**
      * Get CRO Open Services company details by company number.
      *
      * @return array<int|string, mixed>

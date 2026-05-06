@@ -58,6 +58,40 @@ class CroOpenServicesClientTest extends TestCase
         });
     }
 
+    public function test_search_companies_by_name_sends_open_services_request(): void
+    {
+        Http::fake([
+            'https://cro.test/companies*' => Http::response([['company_name' => 'ACME LIMITED']], 200),
+        ]);
+
+        $client = new CroOpenServicesClient(
+            email: 'user@example.com',
+            key: 'secret-key',
+            baseUrl: 'https://cro.test',
+            httpTimeout: 5,
+            connectTimeout: 1,
+            maxPerPage: 2,
+            rateLimitSleepSeconds: 0,
+            delayBetweenRequestsMs: 0,
+        );
+
+        $result = $client->searchCompaniesByName('acme', searchType: 3);
+
+        $this->assertSame([['company_name' => 'ACME LIMITED']], $result);
+
+        Http::assertSent(function (Request $request) {
+            $this->assertStringStartsWith('https://cro.test/companies', $request->url());
+            $this->assertSame('C', $request['company_bus_ind']);
+            $this->assertSame('acme', $request['company_name']);
+            $this->assertSame(3, $request['searchType']);
+            $this->assertSame(0, $request['skip']);
+            $this->assertSame(25, $request['max']);
+            $this->assertSame('json', $request['format']);
+
+            return true;
+        });
+    }
+
     public function test_get_company_returns_payload(): void
     {
         Http::fake([
