@@ -41,27 +41,42 @@ public function show(CroOpenServicesClient $cro)
 {
     $companies = $cro->searchCompaniesByNumber('123456');
     $matches = $cro->searchCompaniesByName('ryanair');
+    $count = $cro->getCompanyCount(['company_name' => 'smith']);
 }
 
 $company = CroOpenServices::getCompany('123456');
+$submission = CroOpenServices::getSubmission('6191121', '2');
 $submissions = CroOpenServices::getCompanySubmissions('123456');
+$submissionCount = CroOpenServices::getSubmissionCount(['company_num' => '54512', 'company_bus_ind' => 'c']);
 $latestByType = CroOpenServices::searchSubmissionsByCompanyNumber('123456');
+$dictionary = CroOpenServices::getDataDictionary();
 ```
 
 ## Available methods
 
 - `searchCompaniesByNumber(string $companyNumber, string $companyBusIndicator = 'C'): array`
 - `searchCompaniesByName(string $companyName, string $companyBusIndicator = 'C', int $searchType = 2, int $skip = 0, int $max = 25): array`
+- `searchCompanies(array $parameters): array`
+- `getCompanyCount(array $parameters): int`
 - `getCompany(string $companyNumber, string $companyBusIndicator = 'c'): array`
 - `getCompanySubmissions(string $companyNumber, string $companyBusIndicator = 'c'): array`
+- `searchSubmissions(array $parameters): array`
+- `getSubmissionCount(array $parameters): int`
+- `getSubmission(string $submissionNumber, string $documentNumber): array`
 - `searchSubmissionsByCompanyNumber(string $companyNumber, string $companyBusIndicator = 'C'): array`
+- `getDataDictionary(): array`
 
 Endpoint coverage:
 
 - `GET /companies`
+- `GET /companycount`
 - `GET /company/{companyNumber}/{companyBusIndicator}`
 - `GET /company/{companyNumber}/{companyBusIndicator}/submissions`
 - `GET /submissions`
+- `GET /submissioncount`
+- `GET /submission/{submissionNumber}/{documentNumber}`
+
+The data dictionary is exposed as a local `Company` and `SubmissionDoc` field map based on CRO's published data dictionary.
 
 ## Scope
 
@@ -82,4 +97,4 @@ export CRO_API_KEY=your-key
 composer test:live
 ```
 
-If no credentials are exported, the live test uses CRO's official public test credential pair. It checks company number `83740` with company/business indicator `C`, verifies that `/company/83740/c` returns the documented `FOSTER WHEELER IRELAND LIMITED` payload shape, verifies numeric `/companies` search for `83740`, and verifies name `/companies` search for `ryanair`.
+If no credentials are exported, the live test uses CRO's official public test credential pair. It checks company number `83740` with company/business indicator `C`, verifies that `/company/83740/c` returns the documented `FOSTER WHEELER IRELAND LIMITED` payload shape, verifies numeric `/companies` search for `83740`, verifies name `/companies` search for `ryanair`, and exercises CRO's documented examples for company count, submission search, submission count, and one submission document.

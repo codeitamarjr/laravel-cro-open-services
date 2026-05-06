@@ -4,6 +4,7 @@ namespace Codeitamarjr\LaravelCroOpenServices\Tests;
 
 use Codeitamarjr\LaravelCroOpenServices\CroOpenServicesClient;
 use Codeitamarjr\LaravelCroOpenServices\CroOpenServicesServiceProvider;
+use Illuminate\Http\Client\RequestException;
 use Orchestra\Testbench\TestCase;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -18,6 +19,14 @@ class CroOpenServicesLiveTest extends TestCase
     private const OFFICIAL_TEST_COMPANY_BUS_INDICATOR = 'C';
 
     private const OFFICIAL_TEST_COMPANY_NAME_QUERY = 'ryanair';
+
+    private const DOCUMENTED_COMPANY_COUNT_QUERY = 'smith';
+
+    private const DOCUMENTED_SUBMISSIONS_COMPANY_NUMBER = '54512';
+
+    private const DOCUMENTED_SUBMISSION_NUMBER = '6191121';
+
+    private const DOCUMENTED_SUBMISSION_DOCUMENT_NUMBER = '2';
 
     protected function getPackageProviders($app): array
     {
@@ -85,6 +94,59 @@ class CroOpenServicesLiveTest extends TestCase
         );
     }
 
+    #[Group('live')]
+    public function test_can_get_documented_company_count_from_cro_open_services(): void
+    {
+        $count = $this->withDocumentedLiveAccess(fn (CroOpenServicesClient $client): int => $client->getCompanyCount([
+            'company_name' => self::DOCUMENTED_COMPANY_COUNT_QUERY,
+        ]));
+
+        $this->assertGreaterThan(0, $count);
+    }
+
+    #[Group('live')]
+    public function test_can_search_documented_submissions_from_cro_open_services(): void
+    {
+        $submissions = $this->withDocumentedLiveAccess(fn (CroOpenServicesClient $client): array => $client->searchSubmissions([
+            'company_num' => self::DOCUMENTED_SUBMISSIONS_COMPANY_NUMBER,
+            'company_bus_ind' => 'c',
+            'max' => 5,
+        ]));
+
+        $this->assertNotEmpty($submissions);
+
+        $firstSubmission = $submissions[0] ?? [];
+
+        $this->assertSame((int) self::DOCUMENTED_SUBMISSIONS_COMPANY_NUMBER, $firstSubmission['company_num'] ?? null);
+        $this->assertSame('C', strtoupper((string) ($firstSubmission['company_bus_ind'] ?? '')));
+        $this->assertArrayHasKey('sub_num', $firstSubmission);
+        $this->assertArrayHasKey('doc_num', $firstSubmission);
+    }
+
+    #[Group('live')]
+    public function test_can_get_documented_submission_count_from_cro_open_services(): void
+    {
+        $count = $this->withDocumentedLiveAccess(fn (CroOpenServicesClient $client): int => $client->getSubmissionCount([
+            'company_num' => self::DOCUMENTED_SUBMISSIONS_COMPANY_NUMBER,
+            'company_bus_ind' => 'c',
+        ]));
+
+        $this->assertGreaterThan(0, $count);
+    }
+
+    #[Group('live')]
+    public function test_can_fetch_documented_submission_details_from_cro_open_services(): void
+    {
+        $submission = $this->withDocumentedLiveAccess(fn (CroOpenServicesClient $client): array => $client->getSubmission(
+            self::DOCUMENTED_SUBMISSION_NUMBER,
+            self::DOCUMENTED_SUBMISSION_DOCUMENT_NUMBER,
+        ));
+
+        $this->assertSame((int) self::DOCUMENTED_SUBMISSION_NUMBER, $submission['sub_num'] ?? null);
+        $this->assertSame((int) self::DOCUMENTED_SUBMISSION_DOCUMENT_NUMBER, $submission['doc_num'] ?? null);
+        $this->assertArrayHasKey('doc_type_desc', $submission);
+    }
+
     private function liveClient(): CroOpenServicesClient
     {
         if (getenv('CRO_OPEN_SERVICES_LIVE_TESTS') !== '1') {
@@ -99,6 +161,33 @@ class CroOpenServicesLiveTest extends TestCase
             key: $key,
             httpTimeout: 15,
             connectTimeout: 5,
+        );
+    }
+
+    /**
+     * @template TValue
+     *
+     * @param  callable(CroOpenServicesClient): TValue  $callback
+     * @return TValue
+     */
+    private function withDocumentedLiveAccess(callable $callback): mixed
+    {
+        try {
+            return $callback($this->liveClient());
+        } catch (RequestException $exception) {
+            if ($exception->response->status() === 401 && ! $this->hasConfiguredLiveCredentials()) {
+                $this->markTestSkipped('CRO public test credentials do not authorize this documented endpoint; provide CRO credentials to run it live.');
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function hasConfiguredLiveCredentials(): bool
+    {
+        return (bool) (
+            (getenv('CRO_OPEN_SERVICES_EMAIL') || getenv('CRO_API_EMAIL') || getenv('CRO_EMAIL'))
+            && (getenv('CRO_OPEN_SERVICES_KEY') || getenv('CRO_API_KEY'))
         );
     }
 }

@@ -92,6 +92,68 @@ class CroOpenServicesClientTest extends TestCase
         });
     }
 
+    public function test_search_companies_sends_full_open_services_request(): void
+    {
+        Http::fake([
+            'https://cro.test/companies*' => Http::response([['company_name' => 'SMITH LIMITED']], 200),
+        ]);
+
+        $client = $this->makeClient();
+
+        $result = $client->searchCompanies([
+            'company_name' => 'smith',
+            'company_bus_ind' => 'E',
+            'searchType' => 3,
+            'address' => 'dublin',
+            'skip' => 10,
+            'max' => 10,
+            'sortBy' => 'company_num',
+            'sortDir' => 'DESC',
+            'htmlEnc' => 1,
+        ]);
+
+        $this->assertSame([['company_name' => 'SMITH LIMITED']], $result);
+
+        Http::assertSent(function (Request $request) {
+            return str_starts_with($request->url(), 'https://cro.test/companies')
+                && $request['company_name'] === 'smith'
+                && $request['company_bus_ind'] === 'E'
+                && $request['searchType'] === 3
+                && $request['address'] === 'dublin'
+                && $request['skip'] === 10
+                && $request['max'] === 10
+                && $request['sortBy'] === 'company_num'
+                && $request['sortDir'] === 'DESC'
+                && $request['htmlEnc'] === 1
+                && $request['format'] === 'json';
+        });
+    }
+
+    public function test_get_company_count_returns_integer(): void
+    {
+        Http::fake([
+            'https://cro.test/companycount*' => Http::response(450, 200),
+        ]);
+
+        $client = $this->makeClient();
+
+        $this->assertSame(450, $client->getCompanyCount([
+            'company_name' => 'smith',
+            'company_bus_ind' => 'C',
+            'searchType' => 2,
+            'address' => 'dublin',
+        ]));
+
+        Http::assertSent(function (Request $request) {
+            return str_starts_with($request->url(), 'https://cro.test/companycount')
+                && $request['company_name'] === 'smith'
+                && $request['company_bus_ind'] === 'C'
+                && $request['searchType'] === 2
+                && $request['address'] === 'dublin'
+                && $request['format'] === 'json';
+        });
+    }
+
     public function test_get_company_returns_payload(): void
     {
         Http::fake([
@@ -151,6 +213,98 @@ class CroOpenServicesClientTest extends TestCase
         $client = $this->makeClient();
 
         $this->assertSame([['sub' => 1]], $client->getCompanySubmissions('123456'));
+    }
+
+    public function test_search_submissions_sends_full_open_services_request(): void
+    {
+        Http::fake([
+            'https://cro.test/submissions*' => Http::response([['sub_num' => 5445465, 'doc_num' => 1]], 200),
+        ]);
+
+        $client = $this->makeClient();
+
+        $result = $client->searchSubmissions([
+            'sub_num' => '5445465',
+            'doc_num' => '1',
+            'company_num' => '54512',
+            'company_bus_ind' => 'c',
+            'sortBy1' => 'sub_num',
+            'sortDir1' => 'DESC',
+            'sortBy2' => 'doc_num',
+            'sortDir2' => 'ASC',
+            'skip' => 0,
+            'max' => 5,
+            'htmlEnc' => 1,
+        ]);
+
+        $this->assertSame([['sub_num' => 5445465, 'doc_num' => 1]], $result);
+
+        Http::assertSent(function (Request $request) {
+            return str_starts_with($request->url(), 'https://cro.test/submissions')
+                && $request['sub_num'] === '5445465'
+                && $request['doc_num'] === '1'
+                && $request['company_num'] === '54512'
+                && $request['company_bus_ind'] === 'c'
+                && $request['sortBy1'] === 'sub_num'
+                && $request['sortDir1'] === 'DESC'
+                && $request['sortBy2'] === 'doc_num'
+                && $request['sortDir2'] === 'ASC'
+                && $request['skip'] === 0
+                && $request['max'] === 5
+                && $request['htmlEnc'] === 1
+                && $request['format'] === 'json';
+        });
+    }
+
+    public function test_get_submission_count_returns_integer(): void
+    {
+        Http::fake([
+            'https://cro.test/submissioncount*' => Http::response(3, 200),
+        ]);
+
+        $client = $this->makeClient();
+
+        $this->assertSame(3, $client->getSubmissionCount([
+            'company_num' => '22045',
+            'company_bus_ind' => 'c',
+        ]));
+
+        Http::assertSent(function (Request $request) {
+            return str_starts_with($request->url(), 'https://cro.test/submissioncount')
+                && $request['company_num'] === '22045'
+                && $request['company_bus_ind'] === 'c'
+                && $request['format'] === 'json';
+        });
+    }
+
+    public function test_get_submission_returns_payload(): void
+    {
+        Http::fake([
+            'https://cro.test/submission/6191121/2*' => Http::response(['sub_num' => 6191121, 'doc_num' => 2], 200),
+        ]);
+
+        $client = $this->makeClient();
+
+        $this->assertSame(['sub_num' => 6191121, 'doc_num' => 2], $client->getSubmission('6191121', '2'));
+
+        Http::assertSent(function (Request $request) {
+            return str_starts_with($request->url(), 'https://cro.test/submission/6191121/2')
+                && $request['format'] === 'json';
+        });
+    }
+
+    public function test_get_data_dictionary_returns_documented_company_and_submission_fields(): void
+    {
+        $client = $this->makeClient();
+
+        $dictionary = $client->getDataDictionary();
+
+        $this->assertArrayHasKey('Company', $dictionary);
+        $this->assertArrayHasKey('SubmissionDoc', $dictionary);
+        $this->assertContains('company_num', array_column($dictionary['Company'], 'field'));
+        $this->assertContains('company_bus_ind', array_column($dictionary['Company'], 'field'));
+        $this->assertContains('sub_num', array_column($dictionary['SubmissionDoc'], 'field'));
+        $this->assertContains('doc_num', array_column($dictionary['SubmissionDoc'], 'field'));
     }
 
     public function test_search_submissions_by_company_number_handles_rate_limit_and_deduplicates(): void
