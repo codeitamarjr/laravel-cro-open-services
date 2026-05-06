@@ -82,4 +82,4 @@ export CRO_API_KEY=your-key
 composer test:live
 ```
 
-If no credentials are exported, the live test uses CRO's official public test credential pair. It checks company number `83740` with company/business indicator `C` and verifies that `/company/83740/c` returns the documented `FOSTER WHEELER IRELAND LIMITED` payload shape.
+If no credentials are exported, the live test uses CRO's official public test credential pair. It checks company number `83740` with company/business indicator `C`, verifies that `/company/83740/c` returns the documented `FOSTER WHEELER IRELAND LIMITED` payload shape, verifies numeric `/companies` search for `83740`, and verifies name `/companies` search for `ryanair`.
