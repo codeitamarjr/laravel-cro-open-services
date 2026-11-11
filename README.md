@@ -14,19 +14,6 @@ It gives you an HTTP client, a container binding and a facade for the public end
 
 ## Install
 
-The package is not on Packagist yet, so add the GitHub repository to your app's `composer.json` first:
-
-```json
-"repositories": {
-    "laravel-cro-open-services": {
-        "type": "vcs",
-        "url": "https://github.com/codeitamarjr/laravel-cro-open-services"
-    }
-}
-```
-
-Then require it:
-
 ```bash
 composer require codeitamarjr/laravel-cro-open-services
 ```
