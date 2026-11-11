@@ -3,6 +3,7 @@
 namespace Codeitamarjr\LaravelCroOpenServices;
 
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -58,7 +59,8 @@ class CroOpenServicesClient
         protected int $connectTimeout = 5,
         protected int $maxPerPage = 100,
         protected int $rateLimitSleepSeconds = 10,
-        protected int $delayBetweenRequestsMs = 750
+        protected int $delayBetweenRequestsMs = 750,
+        protected int $maxRateLimitRetries = 3
     ) {
         $this->baseUrl = rtrim($baseUrl, '/');
     }
@@ -105,10 +107,7 @@ class CroOpenServicesClient
      */
     public function searchCompanies(array $parameters): array
     {
-        return $this->http()
-            ->get('/companies', $this->jsonParameters($parameters))
-            ->throw()
-            ->json();
+        return $this->arrayResponse('/companies', $this->jsonParameters($parameters));
     }
 
     /**
@@ -128,12 +127,7 @@ class CroOpenServicesClient
      */
     public function getCompany(string $companyNumber, string $companyBusIndicator = 'c'): array
     {
-        return $this->http()
-            ->get("/company/{$companyNumber}/".strtolower($companyBusIndicator), [
-                'format' => 'json',
-            ])
-            ->throw()
-            ->json();
+        return $this->arrayResponse("/company/{$companyNumber}/".strtolower($companyBusIndicator), $this->jsonParameters());
     }
 
     /**
@@ -143,12 +137,7 @@ class CroOpenServicesClient
      */
     public function getCompanySubmissions(string $companyNumber, string $companyBusIndicator = 'c'): array
     {
-        $json = $this->http()
-            ->get("/company/{$companyNumber}/".strtolower($companyBusIndicator).'/submissions', $this->jsonParameters())
-            ->throw()
-            ->json();
-
-        return is_array($json) ? $json : [];
+        return $this->arrayResponse("/company/{$companyNumber}/".strtolower($companyBusIndicator).'/submissions', $this->jsonParameters());
     }
 
     /**
@@ -159,12 +148,7 @@ class CroOpenServicesClient
      */
     public function searchSubmissions(array $parameters): array
     {
-        $json = $this->http()
-            ->get('/submissions', $this->jsonParameters($parameters))
-            ->throw()
-            ->json();
-
-        return is_array($json) ? $json : [];
+        return $this->arrayResponse('/submissions', $this->jsonParameters($parameters));
     }
 
     /**
@@ -184,10 +168,7 @@ class CroOpenServicesClient
      */
     public function getSubmission(string $submissionNumber, string $documentNumber): array
     {
-        return $this->http()
-            ->get("/submission/{$submissionNumber}/{$documentNumber}", $this->jsonParameters())
-            ->throw()
-            ->json();
+        return $this->arrayResponse("/submission/{$submissionNumber}/{$documentNumber}", $this->jsonParameters());
     }
 
     /**
@@ -199,6 +180,7 @@ class CroOpenServicesClient
     {
         $results = [];
         $skip = 0;
+        $rateLimitRetries = 0;
 
         while (true) {
             $response = $this->http()
@@ -208,17 +190,20 @@ class CroOpenServicesClient
                     'skip' => $skip,
                     'max' => $this->maxPerPage,
                     'format' => 'json',
-                ])
-                ->throw();
+                ]);
 
             $body = trim($response->body());
 
-            if ($body === 'error code: 1015') {
-                Log::warning("CRO Open Services rate limit for {$companyNumber}. Sleeping {$this->rateLimitSleepSeconds}s and retrying.");
+            if ($this->isRateLimited($response) && $rateLimitRetries < $this->maxRateLimitRetries) {
+                $rateLimitRetries++;
+                Log::warning("CRO Open Services rate limit for {$companyNumber}. Sleeping {$this->rateLimitSleepSeconds}s and retrying ({$rateLimitRetries}/{$this->maxRateLimitRetries}).");
                 sleep($this->rateLimitSleepSeconds);
 
                 continue;
             }
+
+            $response->throw();
+            $rateLimitRetries = 0;
 
             $batch = json_decode($body, true);
 
@@ -297,6 +282,29 @@ class CroOpenServicesClient
             array_merge($parameters, ['format' => 'json']),
             fn (mixed $value): bool => $value !== null && $value !== '',
         );
+    }
+
+    /**
+     * CRO sits behind Cloudflare, which answers rate-limited requests with
+     * HTTP 429 and/or the body "error code: 1015".
+     */
+    protected function isRateLimited(Response $response): bool
+    {
+        return $response->status() === 429 || trim($response->body()) === 'error code: 1015';
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     * @return array<int|string, mixed>
+     */
+    protected function arrayResponse(string $path, array $parameters): array
+    {
+        $json = $this->http()
+            ->get($path, $parameters)
+            ->throw()
+            ->json();
+
+        return is_array($json) ? $json : [];
     }
 
     /**

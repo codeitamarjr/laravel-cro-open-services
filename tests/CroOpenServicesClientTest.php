@@ -5,6 +5,7 @@ namespace Codeitamarjr\LaravelCroOpenServices\Tests;
 use Codeitamarjr\LaravelCroOpenServices\CroOpenServicesClient;
 use Codeitamarjr\LaravelCroOpenServices\CroOpenServicesServiceProvider;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Orchestra\Testbench\TestCase;
@@ -132,7 +133,7 @@ class CroOpenServicesClientTest extends TestCase
     public function test_get_company_count_returns_integer(): void
     {
         Http::fake([
-            'https://cro.test/companycount*' => Http::response(450, 200),
+            'https://cro.test/companycount*' => Http::response('450', 200),
         ]);
 
         $client = $this->makeClient();
@@ -259,7 +260,7 @@ class CroOpenServicesClientTest extends TestCase
     public function test_get_submission_count_returns_integer(): void
     {
         Http::fake([
-            'https://cro.test/submissioncount*' => Http::response(3, 200),
+            'https://cro.test/submissioncount*' => Http::response('3', 200),
         ]);
 
         $client = $this->makeClient();
@@ -352,6 +353,47 @@ class CroOpenServicesClientTest extends TestCase
             return str_starts_with($request->url(), 'https://cro.test/submissions')
                 && $request['skip'] === 2;
         });
+    }
+
+    public function test_search_submissions_by_company_number_retries_http_429(): void
+    {
+        Log::shouldReceive('warning')->once();
+
+        Http::fakeSequence()
+            ->push('error code: 1015', 429)
+            ->push([['sub_type_desc' => 'A1', 'sub_received_date' => '2024-05-02']], 200);
+
+        $results = $this->makeClient()->searchSubmissionsByCompanyNumber('123456');
+
+        $this->assertSame([['sub_type_desc' => 'A1', 'sub_received_date' => '2024-05-02']], $results);
+        Http::assertSentCount(2);
+    }
+
+    public function test_search_submissions_by_company_number_throws_after_max_rate_limit_retries(): void
+    {
+        Log::shouldReceive('warning')->times(3);
+
+        Http::fake([
+            'https://cro.test/submissions*' => Http::response('error code: 1015', 429),
+        ]);
+
+        try {
+            $this->makeClient()->searchSubmissionsByCompanyNumber('123456');
+            $this->fail('Expected a RequestException once rate-limit retries are exhausted.');
+        } catch (RequestException $exception) {
+            $this->assertSame(429, $exception->response->status());
+        }
+
+        Http::assertSentCount(4);
+    }
+
+    public function test_get_company_returns_empty_array_for_empty_response(): void
+    {
+        Http::fake([
+            'https://cro.test/company/123456/c*' => Http::response('', 200),
+        ]);
+
+        $this->assertSame([], $this->makeClient()->getCompany('123456'));
     }
 
     private function makeClient(): CroOpenServicesClient
